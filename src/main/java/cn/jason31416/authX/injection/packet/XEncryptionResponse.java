@@ -26,7 +26,7 @@ public class XEncryptionResponse extends EncryptionResponsePacket {
                 multiInitialLoginSessionHandler.getInbound().disconnect(Message.getMessage("sessionhandler.internal-error").toComponent());
             }
             multiInitialLoginSessionHandler.getMcConnection().close(true);
-            Logger.error("An exception occurred while processing a login request.", e);
+            Logger.error("An exception occurred while processing a login request. "+e.getMessage());
         }
 
         return true;

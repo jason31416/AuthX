@@ -1,7 +1,6 @@
 package cn.jason31416.authX.message;
 
-import cn.jason31416.uniAuthReloaded.common.UniAuthAPIClient;
-import cn.jason31416.uniAuthReloaded.velocity.UniAuthReloadedVelocity;
+import cn.jason31416.authX.AuthXPlugin;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.*;
@@ -13,10 +12,10 @@ public class MessageLoader {
     public Map<String, Object> messageConfig;
 
     public static void initialize(){
-        File lang = new File(UniAuthAPIClient.dataDirectory, "lang.yml");
+        File lang = new File(AuthXPlugin.getInstance().getDataDirectory(), "lang.yml");
 
         if(!lang.exists()){
-            try (InputStream inputStream = UniAuthReloadedVelocity.class.getClassLoader().getResourceAsStream("lang.yml"); OutputStream outputStream = new FileOutputStream(lang)) {
+            try (InputStream inputStream = AuthXPlugin.class.getClassLoader().getResourceAsStream("lang.yml"); OutputStream outputStream = new FileOutputStream(lang)) {
                 outputStream.write(Objects.requireNonNull(inputStream).readAllBytes());
             }catch (Exception e){
                 throw new RuntimeException("Cannot save language file: "+e);

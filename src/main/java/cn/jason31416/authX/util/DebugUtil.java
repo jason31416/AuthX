@@ -35,7 +35,7 @@ public class DebugUtil {
                     break;
                 }
             }
-            System.out.println(event.getClass().getSimpleName() + "("+ ((Player)event.getPlayer()).getUsername() +"): "+event.getPacketType());
+            System.out.println(event.getClass().getSimpleName() + ": " + event.getPacketType());
             if(packet != null && depth > 0) printObject(packet, "  ", depth);
         } catch (Exception e) {
             throw new RuntimeException(e);
