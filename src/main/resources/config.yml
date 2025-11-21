@@ -1,0 +1,28 @@
+limbo:
+  auth-time: 180 # seconds
+  attempt-count: 3
+
+# Velocity only for now: If a premium player rejoined within this time, they will be treated as an offline player
+
+authentication:
+  yggdrasil:
+    password-auth-when-failed: true # If true, the plugin will try to authenticate the player with their password even if Yggdrasil authentication fails.
+
+    auth-servers:
+      mojang: "https://sessionserver.mojang.com/"
+      littleskin: "https://littleskin.cn/api/yggdrasil/"
+
+email-verification-required: true # (For registering new players)
+email-linking-required: false # (For imported players)
+
+regex:
+  email-regex: ".+@[a-zA-Z0-9_\\-\\.]+\\.[a-zA-Z]{2,}" # The regex pattern for email validation. The default option is a common email pattern.
+  password-regex: "[!-~]{3,20}" # The regex pattern for password validation. The default option includes any ASCII character from ! to ~.
+
+database:
+  type: "sqlite" # The type of database to use, can be SQLITE, UNIAUTH. SQLite is recommended for small-scale use.
+
+uniauth: # for UniAuth protocol support. Only on
+  url: "http://localhost:8500"
+  api-key: "your-api-key"
+  # For your security, if you are using uniauth, please remember to check if the publickey.txt file contains the right key! (If it matches the one in the backend)
