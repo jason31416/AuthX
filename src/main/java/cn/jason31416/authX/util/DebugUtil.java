@@ -6,22 +6,27 @@ import lombok.SneakyThrows;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InaccessibleObjectException;
 import java.util.Objects;
 
 public class DebugUtil {
     @SneakyThrows
     public static void printObject(Object obj, String prefix, int depth) {
         for (Field field : obj.getClass().getDeclaredFields()) {
-            field.setAccessible(true);
-            if (depth - 1 <= 0) {
-                String cont = Objects.toString(field.get(obj));
-                if (cont.length() > 50) {
-                    cont = cont.substring(0, 30) + "..." + cont.substring(cont.length() - 20);
+            try {
+                field.setAccessible(true);
+                if (depth - 1 <= 0) {
+                    String cont = Objects.toString(field.get(obj));
+                    if (cont.length() > 50) {
+                        cont = cont.substring(0, 30) + "..." + cont.substring(cont.length() - 20);
+                    }
+                    System.out.println(prefix + "- " + field.getName() + " : " + cont);
+                } else {
+                    System.out.println(prefix + "- " + field.getName() + " :");
+                    printObject(field.get(obj), prefix + "  ", depth - 1);
                 }
-                System.out.println(prefix+"- " + field.getName() + " : " + cont);
-            } else {
-                System.out.println(prefix+"- " + field.getName() + " :");
-                printObject(field.get(obj), prefix + "  ", depth - 1);
+            } catch(InaccessibleObjectException ignored) {
+                System.out.println(prefix + "- " + field.getName() + " : UNABLE TO FETCH");
             }
         }
     }
