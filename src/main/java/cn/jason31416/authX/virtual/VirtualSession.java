@@ -91,10 +91,6 @@ public class VirtualSession extends SimplePacketListenerAbstract {
                 List.of(),
                 0
         );
-        WrapperPlayServerChunkData p6 = new WrapperPlayServerChunkData(
-                new Column(0, 0, false, new BaseChunk[0], new TileEntity[0]),
-                new LightData(false, new BitSet(), new BitSet(), new BitSet(), new BitSet(), 0, 0, new byte[0][0], new byte[0][0])
-        );
         user.sendPacket(p0);
         user.sendPacket(p1);
         user.sendPacket(p2);
@@ -104,7 +100,6 @@ public class VirtualSession extends SimplePacketListenerAbstract {
             user.sendPacket(p4);
         if(user.getClientVersion().isNewerThanOrEquals(ClientVersion.V_1_13))
             user.sendPacket(p5);
-        user.sendPacket(p6);
 
         return session;
         // TODO:在会话结束unregister这个session!!!
