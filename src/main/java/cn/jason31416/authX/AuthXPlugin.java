@@ -19,7 +19,7 @@ import javax.annotation.Nonnull;
 import java.io.File;
 import java.nio.file.Path;
 
-@Plugin(id = "authx", name = "AuthX", version = "1.0.0", authors = {"Jason31416"}, dependencies = {@Dependency(id = "packetevents", optional = true)})
+@Plugin(id = "authx", name = "AuthX", version = "1.0.0", authors = {"Jason31416", "oneLiLi"}, dependencies = {@Dependency(id = "packetevents", optional = true)})
 public class AuthXPlugin {
     @Getter
     public static AuthXPlugin instance;
