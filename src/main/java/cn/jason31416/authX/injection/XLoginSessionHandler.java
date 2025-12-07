@@ -1,10 +1,15 @@
 package cn.jason31416.authX.injection;
 
 import cn.jason31416.authX.AuthXPlugin;
+import cn.jason31416.authX.handler.DatabaseHandler;
+import cn.jason31416.authX.handler.LoginSession;
+import cn.jason31416.authX.handler.YggdrasilAuthenticator;
 import cn.jason31416.authX.injection.mlaccessor.Accessor;
 import cn.jason31416.authX.injection.mlaccessor.EnumAccessor;
 import cn.jason31416.authX.message.Message;
+import cn.jason31416.authX.util.Config;
 import cn.jason31416.authX.util.Logger;
+import cn.jason31416.authX.wrapper.PlayerProfile;
 import com.google.common.primitives.Longs;
 import com.velocitypowered.api.event.connection.PreLoginEvent;
 import com.velocitypowered.api.network.ProtocolVersion;
@@ -173,69 +178,73 @@ public class XLoginSessionHandler {
                 String username = login.getUsername();
                 String serverId = EncryptionUtils.generateServerId(decryptedSharedSecret, serverKeyPair.getPublic());
                 String playerIp = ((InetSocketAddress) this.mcConnection.getRemoteAddress()).getHostString();
-//
-//                AuthXPlugin.getInstance().scheduler.runAsync(() -> {
-//                    PlayerProfile playerProfile = YggdrasilAuthenticator.authenticate(username, serverId, playerIp);
-//                    try {
-//                        if (mcConnection.getChannel().eventLoop().submit(() -> {
-//                            if (this.mcConnection.isClosed()) return false;
-//                            try {
-//                                this.mcConnection.enableEncryption(decryptedSharedSecret);
-//                                return true;
-//                            } catch (GeneralSecurityException var8) {
-//                                UniAuthAPIClient.logger.error("Unable to enable encryption for connection", var8);
-//                                this.mcConnection.close(true);
-//                                return false;
-//                            }
-//                        }).get()) {
-//                            if (playerProfile != null) {
-//                                try {
-////                                    if (UniAuthReloadedVelocity.skinsRestorerHooked) {
-////                                        UniAuthAPIClient.scheduler.runLater(() -> SkinsRestorerHandler.restoreSkins(playerProfile), 500);
-////                                    }
-////                                    var skinValue = playerProfile.properties.stream().filter(p -> p.getOrDefault("name", "").equals("textures")).findFirst();
-////                                    skinValue.ifPresent(stringObjectMap -> PlayerAccount.getPlayerAccount(username).setSkinProperty(new SkinPropertyPair((String) stringObjectMap.get("value"), (String) stringObjectMap.get("signature"))));
-//                                } catch (Exception e) {
-//                                    UniAuthAPIClient.logger.error("An exception occurred while processing the skin repair: " + e.getMessage());
-//                                }
-//                            } else {
-//                                if (Config.getBoolean("yggdrasil.password-auth-when-failed") && PlayerAccount.getPlayerAccount(username).isRegistered()) {
-//                                    this.mcConnection.setActiveSessionHandler(StateRegistry.LOGIN,
-//                                            (AuthSessionHandler) authSessionHandler_allArgsConstructor.invoke(
-//                                                    this.server, inbound, new GameProfile(
-//                                                            UuidUtils.generateOfflinePlayerUuid(login.getUsername()),
-//                                                            login.getUsername(),
-//                                                            new ArrayList<>())
-//                                                    , false)
-//                                    );
-//                                } else {
-//                                    this.inbound.disconnect(Message.getMessage("sessionhandler.invalid-session").add("authtype", PlayerAccount.getPlayerAccount(username).getAuthMethod()).toComponent());
-//                                }
-//                                return;
-//                            }
-//                            mcConnection.getChannel().eventLoop().submit(() -> {
-//                                try {
-//                                    this.mcConnection.setActiveSessionHandler(StateRegistry.LOGIN,
-//                                            (AuthSessionHandler) authSessionHandler_allArgsConstructor.invoke(
-//                                                    this.server, inbound, new GameProfile(
-//                                                            UuidUtils.generateOfflinePlayerUuid(login.getUsername()),
-//                                                            login.getUsername(),
-//                                                            new ArrayList<>())
-//                                                    , true)
-//                                    );
-//                                } catch (Throwable e) {
-//                                    throw new RuntimeException(e);
-//                                }
-//                            }).get();
-//                        }
-//                    } catch (Throwable e) {
-//                        Logger.error("An exception occurred while processing validation results. "+e.getMessage());
-//                        if (encrypted) {
-//                            inbound.disconnect(Message.getMessage("sessionhandler.internal-error").toComponent());
-//                        }
-//                        mcConnection.close(true);
-//                    }
-//                });
+
+                AuthXPlugin.getInstance().getProxy().getScheduler().buildTask(AuthXPlugin.getInstance(), () -> {
+                    PlayerProfile playerProfile;
+                    try {
+                        playerProfile = YggdrasilAuthenticator.authenticate(username, serverId, playerIp);
+                    }catch (Exception e){
+                        playerProfile = null;
+                    }
+//                    Logger.info("Authed: "+(playerProfile == null));
+                    try {
+                        if (mcConnection.getChannel().eventLoop().submit(() -> {
+                            if (this.mcConnection.isClosed()) return false;
+                            try {
+                                this.mcConnection.enableEncryption(decryptedSharedSecret);
+                                return true;
+                            } catch (GeneralSecurityException var8) {
+                                Logger.error("Unable to enable encryption for connection: "+var8.getMessage());
+                                this.mcConnection.close(true);
+                                return false;
+                            }
+                        }).get()) {
+                            if (playerProfile == null) { // If authentication failed
+                                LoginSession session = LoginSession.getSession(username);
+                                if (Config.getBoolean("authentication.yggdrasil.password-auth-when-failed") && !session.isEnforcePrimaryMethod()) {
+                                    session.setVerifyPassword(true);
+                                    mcConnection.getChannel().eventLoop().submit(() -> {
+                                        try{
+                                            this.mcConnection.setActiveSessionHandler(StateRegistry.LOGIN,
+                                                    (AuthSessionHandler) authSessionHandler_allArgsConstructor.invoke(
+                                                            this.server, inbound, new GameProfile(
+                                                                    UuidUtils.generateOfflinePlayerUuid(login.getUsername()),
+                                                                    login.getUsername(),
+                                                                    new ArrayList<>())
+                                                            , false)
+                                            );
+                                        } catch (Throwable e) {
+                                            throw new RuntimeException(e);
+                                        }
+                                    });
+                                } else {
+                                    this.inbound.disconnect(Message.getMessage("authentication.invalid-session").toComponent());
+                                }
+                                return;
+                            }
+                            mcConnection.getChannel().eventLoop().submit(() -> {
+                                try {
+                                    this.mcConnection.setActiveSessionHandler(StateRegistry.LOGIN,
+                                            (AuthSessionHandler) authSessionHandler_allArgsConstructor.invoke(
+                                                    this.server, inbound, new GameProfile(
+                                                            UuidUtils.generateOfflinePlayerUuid(login.getUsername()),
+                                                            login.getUsername(),
+                                                            new ArrayList<>())
+                                                    , true)
+                                    );
+                                } catch (Throwable e) {
+                                    throw new RuntimeException(e);
+                                }
+                            }).get();
+                        }
+                    } catch (Throwable e) {
+                        Logger.error("An exception occurred while processing validation results. "+e.getMessage());
+                        if (encrypted) {
+                            inbound.disconnect(Message.getMessage("sessionhandler.internal-error").toComponent());
+                        }
+                        mcConnection.close(true);
+                    }
+                }).schedule();
             } catch (GeneralSecurityException var9) {
                 Logger.error("Unable to enable encryption. " + var9.getMessage());
                 this.mcConnection.close(true);

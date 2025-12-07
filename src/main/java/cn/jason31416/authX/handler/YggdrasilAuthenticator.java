@@ -1,10 +1,10 @@
 package cn.jason31416.authX.handler;
 
-import cn.jason31416.uniAuthReloaded.common.PlayerAccount;
-import cn.jason31416.uniAuthReloaded.common.PlayerProfile;
-import cn.jason31416.uniAuthReloaded.common.UniAuthAPIClient;
-import cn.jason31416.uniAuthReloaded.common.data.DatabaseHandler;
-import cn.jason31416.uniAuthReloaded.common.util.Config;
+import cn.jason31416.authX.message.Message;
+import cn.jason31416.authX.util.Config;
+import cn.jason31416.authX.util.Logger;
+import cn.jason31416.authX.util.MapTree;
+import cn.jason31416.authX.wrapper.PlayerProfile;
 import com.google.gson.Gson;
 
 import java.net.URI;
@@ -24,17 +24,16 @@ public class YggdrasilAuthenticator {
                 .GET()
                 .build(), HttpResponse.BodyHandlers.ofString());
         res.thenAccept(response -> {
-            UniAuthAPIClient.logger.info("Authenticating with "+url+" server: "+response.statusCode()+" "+response.body());
             if(response.statusCode() == 200) {
                 var ret = new Gson().fromJson(response.body(), PlayerProfile.class);
                 ret.authentication = authMethod;
                 DatabaseHandler.setPreferred(username, authMethod);
                 if(!DatabaseHandler.getAuthMethods(username).contains(authMethod)){
-                    var session = LoginSession.getSessionMap().get(username);
+                    var session = LoginSession.getSession(username);
                     session.setVerifyPassword(true);
                     session.setAuthMethod(authMethod);
+                    session.setPasswordIntroMessage(Message.getMessage("auth.yggdrasil-new-need-verification").add("auth_method", authMethod));
                 }
-                PlayerAccount.getPlayerAccount(username).setAuthMethod(authMethod);
                 future.complete(ret);
             }else{
                 future.complete(null);
@@ -43,12 +42,12 @@ public class YggdrasilAuthenticator {
         return future;
     }
     public static PlayerProfile authenticate(String username, String serverID, String ip) {
-        Map<String, String> authServers = (Map<String, String>) Config.get("yggdrasil.auth-servers");
+        MapTree authServers = Config.getSection("authentication.yggdrasil.auth-servers");
         try{
             String preferredMethod = DatabaseHandler.getPreferredMethod(username);
-            if(preferredMethod!=null&&!preferredMethod.isEmpty()&&authServers.containsKey(preferredMethod)) {
+            if(preferredMethod!=null&&!preferredMethod.isEmpty()&&authServers.contains(preferredMethod)) {
                 String url = authServers.get(preferredMethod) + "session/minecraft/hasJoined?username=" + username + "&serverId=" + serverID;
-                if (Config.getBoolean("yggdrasil.verify-ip")) url += "&ip=" + ip;
+                if (Config.getBoolean("authentication.yggdrasil.verify-ip")) url += "&ip=" + ip;
                 var res = authenticateVia(username, preferredMethod, url);
                 if (res.get() != null){
                     return res.get();
@@ -57,10 +56,10 @@ public class YggdrasilAuthenticator {
             var session = LoginSession.getSessionMap().get(username);
             if(!session.isEnforcePrimaryMethod()) {
                 List<CompletableFuture<PlayerProfile>> futures = new ArrayList<>();
-                for (String method : authServers.keySet()) {
+                for (String method : authServers.getKeys()) {
                     if (!method.equals(preferredMethod)) {
                         String url1 = authServers.get(method) + "session/minecraft/hasJoined?username=" + username + "&serverId=" + serverID;
-                        if (Config.getBoolean("yggdrasil.verify-ip")) url1 += "&ip=" + ip;
+                        if (Config.getBoolean("authentication.yggdrasil.verify-ip")) url1 += "&ip=" + ip;
                         futures.add(authenticateVia(username, method, url1));
                     }
                 }
@@ -76,7 +75,7 @@ public class YggdrasilAuthenticator {
             }
             return null;
         }catch (Exception e){
-            UniAuthAPIClient.logger.error("Failed to authenticate " + username + ": " + e.getMessage());
+            Logger.error("Failed to authenticate " + username + ": " + e.getMessage());
         }
         return null;
     }

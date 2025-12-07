@@ -14,9 +14,6 @@ public class XEncryptionResponse extends EncryptionResponsePacket {
         if (!(handler instanceof InitialLoginSessionHandler)) {
             return super.handle(handler);
         }
-        if(!Config.getBoolean("yggdrasil.enabled")){
-            return super.handle(handler);
-        }
 
         XLoginSessionHandler multiInitialLoginSessionHandler = new XLoginSessionHandler((InitialLoginSessionHandler) handler);
         try {

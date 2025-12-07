@@ -1,0 +1,61 @@
+auth:
+  invalid-session: "&c无效的会话! 请重新登录"
+  unknown-error: "&c未知错误! 请联系管理员并重试"
+
+  failed-to-login: "&c登录验证系统出错，请联系管理员!"
+
+  user-input: "&7> %input%"
+
+  failed-to-connect-to-backend: "&c无法连接到后端服务器! 请稍后再试"
+  timeout: "&c登录超时! 请重新进入服务器哦"
+
+  yggdrasil-new-need-verification: "&a这是你第一次使用 %auth_method% 进入服务器，需要进行密码验证来确保你的安全！"
+
+  auth-bar-name: "&f剩余 %time% 秒"
+
+  message-hint:
+    unknown: "&7加载中..."
+    login: "&b请在聊天栏中输入您的 &e密码 &b进行登录!"
+    register_password: "&b请在聊天栏中输入一个 &e密码 &b进行注册!"
+    register_confirm_password: "&b请再次输入您的密码! &7('back'返回上一步)"
+
+  register-success: "&a注册成功! 欢迎来到服务器awa"
+  passwords-dont-match: "&c两次输入的密码不匹配! 请仔细检查哦"
+  password-doesnt-match-regex: "&c密码不符合要求! 换个安全又好记的密码吧~"
+
+  login-success: "&a登录成功! 欢迎回来~"
+  max-attempts: "&c登录尝试次数过多! 请稍后再试"
+  email-not-verified: "&e登录成功，请记得绑定邮箱哦~"
+  invalid-password: "&c密码错误! 是不是记错了呢~"
+
+
+tab-complete:
+  change-password:
+    old: "<旧密码>"
+    new: "<新密码>"
+  force-change-password:
+    player: "<玩家>"
+    new: "<新密码>"
+
+command:
+  player-command: "&c该命令为玩家命令，不可在控制台执行!"
+  default: "&c未知的子命令!"
+
+  player-not-exists: "&c玩家 %player% 不存在!"
+
+  change-password:
+    success: "&a成功修改了密码! 请一定要牢牢记住哦!"
+    invalid-format-need-old-password: "&c错误的格式! 请使用 &e/account changepass <旧密码> <新密码>"
+    invalid-format-no-old-password: "&c错误的格式! 请使用 &e/account changepass <新密码>"
+    invalid-password: "&c错误的密码! 是不是记错了呢~"
+    invalid-password-format: "&c密码不符合要求! 换个安全又好记的密码吧~"
+
+  force-change-password:
+    success: "&a成功修改了 %player% 的密码!"
+    invalid-format: "&c错误的格式! 请使用 &e/authx changepass <玩家用户名> <新密码>"
+
+  force-unregister:
+    invalid-format: "&c错误的格式! 请使用 &e/authx unregister <玩家用户名>"
+
+  reload:
+    success: "&a成功重载了 &bAuthX &a!"

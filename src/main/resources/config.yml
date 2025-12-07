@@ -1,28 +1,48 @@
-limbo:
-  auth-time: 180 # seconds
-  attempt-count: 3
-
-# Velocity only for now: If a premium player rejoined within this time, they will be treated as an offline player
-
 authentication:
   yggdrasil:
-    password-auth-when-failed: true # If true, the plugin will try to authenticate the player with their password even if Yggdrasil authentication fails.
+    # If true, the plugin will verify the player's IP address when authenticating with Yggdrasil. Make sure that either there are no proxy before velocity or HAProxy is on.
+    verify-ip: true
 
+    # If true, the plugin will try to authenticate the player with their password even if Yggdrasil authentication fails.
+    # If false, the player will be kicked if they are not in offline mode and Yggdrasil authentication fails.
+    password-auth-when-failed: true
+
+    # Enabled session servers for Yggdrasil authentication.
     auth-servers:
       mojang: "https://sessionserver.mojang.com/"
-      littleskin: "https://littleskin.cn/api/yggdrasil/"
+      littleskin: "https://littleskin.cn/api/yggdrasil/sessionserver/"
 
-email-verification-required: true # (For registering new players)
-email-linking-required: false # (For imported players)
+  password:
+    auth-time: 180 # seconds
+    attempt-count: 3
+
+    method: SQLITE # SQLITE, UNIAUTH
+
+    uniauth:
+      url: "http://localhost:8500/"
+      api-key: ""
+
+limbo-world:
+  gamemode: survival # Can be: survival, creative, adventure, spectator(Not suggested)
+  dimension: overworld # Can be: overworld,
+  position:
+    x: 0
+    y: 64
+    z: 0
+    yaw: 0
+    pitch: 0
+  world-loader:
+    # VOID/SCHEMATIC/WORLDEDIT_SCHEM/STRUCTURE
+    type: VOID
+    file-name: "example.schem"
+    offset-x: 0
+    offset-y: 0
+    offset-z: 0
+
+command:
+  change-password:
+    need-old-password: true
 
 regex:
-  email-regex: ".+@[a-zA-Z0-9_\\-\\.]+\\.[a-zA-Z]{2,}" # The regex pattern for email validation. The default option is a common email pattern.
+#  email-regex: ".+@[a-zA-Z0-9_\\-\\.]+\\.[a-zA-Z]{2,}" # The regex pattern for email validation. The default option is a common email pattern.
   password-regex: "[!-~]{3,20}" # The regex pattern for password validation. The default option includes any ASCII character from ! to ~.
-
-database:
-  type: "sqlite" # The type of database to use, can be SQLITE, UNIAUTH. SQLite is recommended for small-scale use.
-
-uniauth: # for UniAuth protocol support. Only on
-  url: "http://localhost:8500"
-  api-key: "your-api-key"
-  # For your security, if you are using uniauth, please remember to check if the publickey.txt file contains the right key! (If it matches the one in the backend)

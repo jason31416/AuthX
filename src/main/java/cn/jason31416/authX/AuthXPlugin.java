@@ -1,25 +1,45 @@
 package cn.jason31416.authX;
 
+import cn.jason31416.authX.authbackend.AbstractAuthenticator;
+import cn.jason31416.authX.authbackend.LocalAuthenticator;
+import cn.jason31416.authX.authbackend.UniauthAuthenticator;
+import cn.jason31416.authX.command.AccountCommandHandler;
+import cn.jason31416.authX.command.AdminCommandHandler;
+import cn.jason31416.authX.handler.DatabaseHandler;
 import cn.jason31416.authX.handler.EventListener;
-import cn.jason31416.authX.handler.PacketListener;
+import cn.jason31416.authX.handler.LimboHandler;
 import cn.jason31416.authX.injection.PacketInjector;
-import com.github.retrooper.packetevents.PacketEvents;
+import cn.jason31416.authX.injection.XLoginSessionHandler;
+import cn.jason31416.authX.message.MessageLoader;
+import cn.jason31416.authX.util.Config;
 import com.google.inject.Inject;
+import com.velocitypowered.api.command.CommandMeta;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.plugin.Dependency;
 import com.velocitypowered.api.plugin.Plugin;
+import com.velocitypowered.api.plugin.PluginContainer;
 import com.velocitypowered.api.plugin.annotation.DataDirectory;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.scheduler.Scheduler;
 import lombok.Getter;
+import lombok.SneakyThrows;
+import net.elytrium.limboapi.api.LimboFactory;
+import net.elytrium.limboapi.api.chunk.Dimension;
+import net.elytrium.limboapi.api.chunk.VirtualWorld;
+import net.elytrium.limboapi.api.command.LimboCommandMeta;
+import net.elytrium.limboapi.api.file.BuiltInWorldFileType;
+import net.elytrium.limboapi.api.file.WorldFile;
+import net.elytrium.limboapi.api.player.GameMode;
 import org.slf4j.Logger;
 
 import javax.annotation.Nonnull;
-import java.io.File;
+import java.io.*;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.Locale;
 
-@Plugin(id = "authx", name = "AuthX", version = "1.0.0", authors = {"Jason31416", "oneLiLi"}, dependencies = {@Dependency(id = "packetevents", optional = true)})
+@Plugin(id = "authx", name = "AuthX", version = "1.0.0", authors = {"Jason31416", "oneLiLi"}, dependencies = {@Dependency(id = "limboapi", optional = false)})
 public class AuthXPlugin {
     @Getter
     public static AuthXPlugin instance;
@@ -35,6 +55,44 @@ public class AuthXPlugin {
         return instance.proxy.getScheduler();
     }
 
+    @SneakyThrows
+    public void init() {
+        if(!dataDirectory.exists()) dataDirectory.mkdirs();
+
+        Config.init();
+        MessageLoader.initialize();
+
+        DatabaseHandler.init();
+
+        LimboFactory factory = (LimboFactory) proxy.getPluginManager().getPlugin("limboapi").flatMap(PluginContainer::getInstance).orElseThrow();
+        VirtualWorld authWorld = factory.createVirtualWorld(
+                Dimension.valueOf(Config.getString("limbo-world.dimension").toUpperCase(Locale.ROOT)),
+                Config.getDouble("limbo-world.position.x"), Config.getDouble("limbo-world.position.y"), Config.getDouble("limbo-world.position.z"),
+                (float)Config.getDouble("limbo-world.position.yaw"), (float)Config.getDouble("limbo-world.position.pitch")
+        );
+        if(!Config.getString("limbo-world.world-loader.type").equalsIgnoreCase("VOID")){
+            WorldFile worldFile = factory.openWorldFile(BuiltInWorldFileType.valueOf(Config.getString("limbo-world.world-loader.type")), new File(dataDirectory, Config.getString("limbo-world.world-loader.file-name")).toPath());
+            worldFile.toWorld(
+                    factory,
+                    authWorld,
+                    Config.getInt("limbo-world.world-loader.offset-x"),
+                    Config.getInt("limbo-world.world-loader.offset-y"),
+                    Config.getInt("limbo-world.world-loader.offset-z")
+            );
+        }
+        LimboHandler.limboWorld = factory
+                .createLimbo(authWorld)
+                .setName("UniAuthLimbo")
+                .setGameMode(GameMode.valueOf(Config.getString("limbo-world.gamemode").toUpperCase(Locale.ROOT)));
+
+        AbstractAuthenticator.instance = switch(Config.getString("authentication.password.method").toLowerCase(Locale.ROOT)){
+            case "uniauth" -> new UniauthAuthenticator();
+            case "sqlite" -> new LocalAuthenticator();
+            default -> throw new IllegalArgumentException("Invalid API source: "+Config.getString("authentication.password.uniauth"));
+        };
+        AbstractAuthenticator.getInstance().initialize();
+    }
+
     @Inject
     public AuthXPlugin(@Nonnull ProxyServer proxy, @Nonnull Logger logger, @Nonnull @DataDirectory Path dataDirectory) {
         this.proxy = proxy;
@@ -45,10 +103,30 @@ public class AuthXPlugin {
     }
 
     @Subscribe
+    @SneakyThrows
     public void onProxyInitialization(ProxyInitializeEvent event) {
-        PacketInjector.inject();
+        init();
+
         proxy.getEventManager().register(instance, new EventListener());
-        PacketEvents.getAPI().getEventManager().registerListener(new PacketListener());
+
+        proxy.getCommandManager().register(
+                proxy.getCommandManager().metaBuilder("authx").plugin(this).build(),
+                AdminCommandHandler.INSTANCE
+        );
+
+        proxy.getCommandManager().register(
+                proxy.getCommandManager().metaBuilder("account").plugin(this).build(),
+                AccountCommandHandler.INSTANCE
+        );
+
+        try {
+            XLoginSessionHandler.init();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to initialize login session handler", e);
+        }
+
+        PacketInjector.inject();
+        logger.info("UniAuthReloaded has been enabled!");
     }
 
     public void info(String message) {

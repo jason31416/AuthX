@@ -1,5 +1,6 @@
 package cn.jason31416.authX.handler;
 
+import cn.jason31416.authX.message.Message;
 import cn.jason31416.authX.util.Logger;
 import com.velocitypowered.api.util.UuidUtils;
 import lombok.Getter;
@@ -23,6 +24,12 @@ public class LoginSession {
     private boolean verifyPassword = true;
     @Setter
     private String authMethod = null;
+
+    @Setter
+    private String password = null;
+
+    @Setter
+    private Message passwordIntroMessage = null;
 
     public LoginSession(String username, UUID uuid) {
         this.username = username;
