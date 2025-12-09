@@ -55,7 +55,7 @@ public class AdminCommandHandler implements SimpleCommand {
                 invocation.source().sendMessage(Message.getMessage("command.reload.success").toComponent());
             }
             case "" -> {
-                invocation.source().sendMessage(new Message("&a&lRunning &b&lAuthX v &a&l ").toComponent());
+                invocation.source().sendMessage(new Message("&a&lRunning &b&lAuthX &a&l by Jason31416!").toComponent());
             }
             default -> {
                 invocation.source().sendMessage(Message.getMessage("command.default").toComponent());

@@ -199,6 +199,13 @@ public class XLoginSessionHandler {
                                 return false;
                             }
                         }).get()) {
+                            if(Config.getBoolean("log.auth-yggdrasil")) {
+                                if (playerProfile == null) {
+                                    Logger.info("Player " + username + " failed yggdrasil login.");
+                                }else{
+                                    Logger.info("Player " + username + " logged in with " + playerProfile.authentication + ".");
+                                }
+                            }
                             if (playerProfile == null) { // If authentication failed
                                 LoginSession session = LoginSession.getSession(username);
                                 if (Config.getBoolean("authentication.yggdrasil.password-auth-when-failed") && !session.isEnforcePrimaryMethod()) {

@@ -36,10 +36,13 @@ import org.slf4j.Logger;
 import javax.annotation.Nonnull;
 import java.io.*;
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
-@Plugin(id = "authx", name = "AuthX", version = "1.0.0", authors = {"Jason31416", "oneLiLi"}, dependencies = {@Dependency(id = "limboapi", optional = false)})
+@Plugin(id = "authx", name = "AuthX", version = "2.1.2", authors = {"Jason31416", "oneLiLi"}, dependencies = {@Dependency(id = "limboapi", optional = false)})
 public class AuthXPlugin {
     @Getter
     public static AuthXPlugin instance;
@@ -80,9 +83,12 @@ public class AuthXPlugin {
                     Config.getInt("limbo-world.world-loader.offset-z")
             );
         }
+
+        if(LimboHandler.limboWorld!= null) LimboHandler.limboWorld.dispose();
+
         LimboHandler.limboWorld = factory
                 .createLimbo(authWorld)
-                .setName("UniAuthLimbo")
+                .setName("AuthXLimbo")
                 .setGameMode(GameMode.valueOf(Config.getString("limbo-world.gamemode").toUpperCase(Locale.ROOT)));
 
         AbstractAuthenticator.instance = switch(Config.getString("authentication.password.method").toLowerCase(Locale.ROOT)){
@@ -118,6 +124,14 @@ public class AuthXPlugin {
                 proxy.getCommandManager().metaBuilder("account").plugin(this).build(),
                 AccountCommandHandler.INSTANCE
         );
+
+        getScheduler().buildTask(this, () -> {
+            for(UUID uuid: new HashSet<>(EventListener.loginPremiumFailedCache.keySet())){
+                if(EventListener.loginPremiumFailedCache.get(uuid) < System.currentTimeMillis()){
+                    EventListener.loginPremiumFailedCache.remove(uuid);
+                }
+            }
+        }).repeat(1, TimeUnit.HOURS).schedule();
 
         try {
             XLoginSessionHandler.init();

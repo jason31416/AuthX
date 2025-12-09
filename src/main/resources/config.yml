@@ -22,22 +22,26 @@ authentication:
       url: "http://localhost:8500/"
       api-key: ""
 
+log:
+  pre-login: false
+  join-limbo: false
+  auth-yggdrasil: true
+
 limbo-world:
   gamemode: survival # Can be: survival, creative, adventure, spectator(Not suggested)
-  dimension: overworld # Can be: overworld,
-  position:
+  dimension: overworld # Can be: overworld, nether, the_end
+  position: # The position that the player will be spawned and teleported to when they join the limbo world.
     x: 0
     y: 64
     z: 0
     yaw: 0
     pitch: 0
-  world-loader:
-    # VOID/SCHEMATIC/WORLDEDIT_SCHEM/STRUCTURE
+  world-loader: # This is still in development, only VOID is available for now.
     type: VOID
-    file-name: "example.schem"
-    offset-x: 0
-    offset-y: 0
-    offset-z: 0
+#    file-name: "example.schem"
+#    offset-x: 0
+#    offset-y: 0
+#    offset-z: 0
 
 command:
   change-password:
