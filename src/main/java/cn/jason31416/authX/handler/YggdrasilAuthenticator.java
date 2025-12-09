@@ -6,6 +6,8 @@ import cn.jason31416.authX.util.Logger;
 import cn.jason31416.authX.util.MapTree;
 import cn.jason31416.authX.wrapper.PlayerProfile;
 import com.google.gson.Gson;
+import com.spotify.futures.CompletableFutures;
+import lombok.SneakyThrows;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -14,9 +16,47 @@ import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 public class YggdrasilAuthenticator {
+    public static CompletableFuture<Boolean> checkExists(String username, UUID uuid, String url){
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        var res = HttpClient.newHttpClient().sendAsync(HttpRequest.newBuilder()
+                .uri(URI.create(url+"session/minecraft/profile/"+uuid.toString().replace("-", "")))
+                .GET()
+                .build(), HttpResponse.BodyHandlers.ofString());
+        res.thenAccept(response -> {
+            if(response.statusCode() == 200) {
+                var ret = new Gson().fromJson(response.body(), PlayerProfile.class);
+//                Logger.info("User detected as "+url);
+                future.complete(username.equals(ret.name));
+            }else{
+                future.complete(false);
+            }
+        });
+        return future;
+    }
+
+    @SneakyThrows
+    public static boolean checkAllExists(String username, UUID uuid){
+        List<CompletableFuture<Boolean> > futures = new ArrayList<>();
+        for (String method : Config.getSection("authentication.yggdrasil.auth-servers").getKeys()) {
+            String url = Config.getString("authentication.yggdrasil.auth-servers."+method);
+            futures.add(checkExists(username, uuid, url));
+        }
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                .completeOnTimeout(null, 10, TimeUnit.SECONDS)
+                .join();
+        for (CompletableFuture<Boolean> future : futures) {
+            if(future.get()){
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static CompletableFuture<PlayerProfile> authenticateVia(String username, String authMethod, String url){
         CompletableFuture<PlayerProfile> future = new CompletableFuture<>();
         var res = HttpClient.newHttpClient().sendAsync(HttpRequest.newBuilder()
@@ -27,9 +67,9 @@ public class YggdrasilAuthenticator {
             if(response.statusCode() == 200) {
                 var ret = new Gson().fromJson(response.body(), PlayerProfile.class);
                 ret.authentication = authMethod;
+                var session = LoginSession.getSession(username);
                 DatabaseHandler.setPreferred(username, authMethod);
                 if(!DatabaseHandler.getAuthMethods(username).contains(authMethod)){
-                    var session = LoginSession.getSession(username);
                     session.setVerifyPassword(true);
                     session.setAuthMethod(authMethod);
                     session.setPasswordIntroMessage(Message.getMessage("auth.yggdrasil-new-need-verification").add("auth_method", authMethod));
@@ -64,11 +104,12 @@ public class YggdrasilAuthenticator {
                     }
                 }
 
-                CompletableFuture<Void> allFutures = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
-                allFutures.join();
+                CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                        .completeOnTimeout(null, 10, TimeUnit.SECONDS)
+                        .join();
 
                 for (CompletableFuture<PlayerProfile> future : futures) {
-                    if (future.get() != null) {
+                    if (future.isDone() && future.get() != null) {
                         return future.get();
                     }
                 }

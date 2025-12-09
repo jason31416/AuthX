@@ -52,6 +52,10 @@ public class EventListener {
         return !UUID.nameUUIDFromBytes(("OfflinePlayer:" + username).getBytes(StandardCharsets.UTF_8)).equals(uuid);
     }
 
+    public static boolean checkUserYggdrasilStatusFromRequest(String username, UUID uuid){
+        return YggdrasilAuthenticator.checkAllExists(username, uuid);
+    }
+
     @SneakyThrows
     @Subscribe
     public void onPreLogin(@Nonnull PreLoginEvent event) {
@@ -80,26 +84,45 @@ public class EventListener {
             session.setVerifyPassword(true);
             session.setEnforcePrimaryMethod(true);
             cs = "imported";
-        }else if(checkUserYggdrasilStatusFromUUID(username, event.getUniqueId()) && !loginPremiumFailedCache.containsKey(event.getUniqueId())){
-            event.setResult(PreLoginEvent.PreLoginComponentResult.forceOnlineMode());
-            session.setVerifyPassword(false);
-
-            LoginInboundConnection inboundConnection = (LoginInboundConnection) event.getConnection();
-            InitialInboundConnection initialInbound = (InitialInboundConnection) DELEGATE_FIELD.invokeExact(inboundConnection);
-            MinecraftConnection connection = initialInbound.getConnection();
-            if (!connection.isClosed()) {
-                pendingLogins.add(username);
-                connection.getChannel().closeFuture().addListener(future -> {
-                    if(pendingLogins.remove(username)){
-                        loginPremiumFailedCache.put(event.getUniqueId(), System.currentTimeMillis() + TimeUnit.DAYS.toMillis(1));
+        }else{
+            boolean isPremium = false;
+            if(!loginPremiumFailedCache.containsKey(event.getUniqueId())){
+                switch (Config.getString("authentication.filter-method").toLowerCase(Locale.ROOT)){
+                    case "uuid" -> {
+                        isPremium = checkUserYggdrasilStatusFromUUID(username, event.getUniqueId());
                     }
-                });
+                    case "request" -> {
+                        isPremium = checkUserYggdrasilStatusFromRequest(username, event.getUniqueId());
+                    }
+                    default -> { // auto
+                        isPremium = checkUserYggdrasilStatusFromUUID(username, event.getUniqueId());
+                        if(isPremium){
+                            isPremium = checkUserYggdrasilStatusFromRequest(username, event.getUniqueId());
+                        }
+                    }
+                }
             }
-            cs = "yggdrasil";
-        }else {
-            event.setResult(PreLoginEvent.PreLoginComponentResult.forceOfflineMode());
-            session.setVerifyPassword(true);
-            cs = "offline";
+            if(isPremium){
+                event.setResult(PreLoginEvent.PreLoginComponentResult.forceOnlineMode());
+                session.setVerifyPassword(false);
+
+                LoginInboundConnection inboundConnection = (LoginInboundConnection) event.getConnection();
+                InitialInboundConnection initialInbound = (InitialInboundConnection) DELEGATE_FIELD.invokeExact(inboundConnection);
+                MinecraftConnection connection = initialInbound.getConnection();
+                if (!connection.isClosed()) {
+                    pendingLogins.add(username);
+                    connection.getChannel().closeFuture().addListener(future -> {
+                        if(pendingLogins.remove(username)){
+                            loginPremiumFailedCache.put(event.getUniqueId(), System.currentTimeMillis() + TimeUnit.DAYS.toMillis(1));
+                        }
+                    });
+                }
+                cs = "yggdrasil";
+            }else {
+                event.setResult(PreLoginEvent.PreLoginComponentResult.forceOfflineMode());
+                session.setVerifyPassword(true);
+                cs = "offline";
+            }
         }
         if(Config.getBoolean("log.pre-login"))
             Logger.info("Player "+event.getUsername()+" ("+event.getUniqueId()+") Joined the server! Detected as " + cs + " authentication.");
@@ -127,7 +150,7 @@ public class EventListener {
 
     @Subscribe(order = PostOrder.FIRST)
     public void onGameProfileRequest(GameProfileRequestEvent event) {
-        GameProfile profile = event.getOriginalProfile().withId(UuidUtils.generateOfflinePlayerUuid(event.getUsername()));
+        GameProfile profile = event.getOriginalProfile().withId(DatabaseHandler.getUUID(event.getUsername()));
         event.setGameProfile(profile);
     }
 }

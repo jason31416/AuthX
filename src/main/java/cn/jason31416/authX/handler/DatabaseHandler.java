@@ -1,14 +1,17 @@
 package cn.jason31416.authX.handler;
 
 import cn.jason31416.authX.AuthXPlugin;
+import com.velocitypowered.api.util.UuidUtils;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.SneakyThrows;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.UUID;
 
 public class DatabaseHandler {
     public static HikariDataSource dataSource;
@@ -28,6 +31,30 @@ public class DatabaseHandler {
 
         try (Connection connection = getConnection()) {
             connection.prepareStatement("CREATE TABLE IF NOT EXISTS authmethods (username VARCHAR(255) PRIMARY KEY, verified VARCHAR(255), preferred VARCHAR(255))").execute();
+            connection.prepareStatement("CREATE TABLE IF NOT EXISTS uuiddata (username VARCHAR(255) PRIMARY KEY, uuid VARCHAR(255))").execute();
+        }
+    }
+
+    @SneakyThrows
+    public static void setUUID(String username, UUID uuid){
+        try (Connection connection = getConnection()) {
+            var st = connection.prepareStatement("INSERT OR REPLACE INTO uuiddata (username, uuid) VALUES (?,?)");
+            st.setString(1, username);
+            st.setString(2, uuid.toString());
+            st.execute();
+        }
+    }
+    @SneakyThrows
+    public static UUID getUUID(String username) {
+        try (Connection connection = getConnection()) {
+            var st = connection.prepareStatement("SELECT uuid FROM uuiddata WHERE username =?");
+            st.setString(1, username);
+            var rs = st.executeQuery();
+            if (rs.next()) {
+                return UUID.fromString(rs.getString("uuid"));
+            } else {
+                return UuidUtils.generateOfflinePlayerUuid(username);
+            }
         }
     }
 

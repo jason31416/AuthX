@@ -1,4 +1,15 @@
 authentication:
+  # The method used to determine if the player is using one of the listed auth servers.
+  # If falsely recognized user as premium, the user will be disconnected but the next time they join, they will be able to login via password
+  # If falsely recognized user as offline, the user will just need to use password authentication.
+  # Can be: UUID, REQUEST, AUTO
+  # UUID: Only recognize uuid patterns (works for PCL and launchers that supports the Bukkit-styled UUID format (Such as HMCL) )
+  # REQUEST: Send a request to the listed auth servers to check if the player is premium (Cached). Usually always works but will take longer.
+  # AUTO: Only send requests when necessary, otherwise use caches or UUID methods.
+
+  # ONLY CHOOSE REQUEST/AUTO IF YOU ARE FACING CASES WHERE UUID DOESN'T WORK!
+  filter-method: UUID
+
   yggdrasil:
     # If true, the plugin will verify the player's IP address when authenticating with Yggdrasil. Make sure that either there are no proxy before velocity or HAProxy is on.
     verify-ip: true
