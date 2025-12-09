@@ -42,7 +42,7 @@ import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-@Plugin(id = "AuthX", name = "AuthX", version = "2.1.2", authors = {"Jason31416", "oneLiLi"}, dependencies = {@Dependency(id = "limboapi", optional = false)})
+@Plugin(id = "authx", name = "AuthX", version = "2.1.2", authors = {"Jason31416", "oneLiLi"}, dependencies = {@Dependency(id = "limboapi", optional = false)})
 public class AuthXPlugin {
     @Getter
     public static AuthXPlugin instance;

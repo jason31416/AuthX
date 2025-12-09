@@ -55,4 +55,10 @@ public class UniauthAuthenticator extends AbstractAuthenticator {
         if(!res.isEmpty()) Logger.warn("Failed to change password for user: "+res);
         return res.isEmpty()?RequestResult.SUCCESS:RequestResult.UNKNOWN_ERROR;
     }
+
+    public RequestResult changePasswordWithOld(String username, String oldPassword, String newPassword){
+        var res = UniAuthAPIClient.resetPassword(username, oldPassword, newPassword);
+        if(res) return RequestResult.SUCCESS;
+        return RequestResult.INVALID_PASSWORD;
+    }
 }

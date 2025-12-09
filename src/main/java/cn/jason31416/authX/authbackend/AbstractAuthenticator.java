@@ -42,4 +42,8 @@ public abstract class AbstractAuthenticator {
     public abstract RequestResult unregister(String username);
 
     public abstract RequestResult changePassword(String username, String newPassword);
+
+    public RequestResult changePasswordWithOld(String username, String oldPassword, String newPassword){
+        return changePassword(username, newPassword);
+    }
 }

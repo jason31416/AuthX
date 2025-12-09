@@ -36,10 +36,14 @@ tab-complete:
   force-change-password:
     player: "<玩家>"
     new: "<新密码>"
+  set-uuid:
+    player: "<玩家>"
+    uuid: "[UUID]"
 
 command:
   player-command: "&c该命令为玩家命令，不可在控制台执行!"
   default: "&c未知的子命令!"
+  no-permission: "&c你没有权限执行该命令!"
 
   player-not-exists: "&c玩家 %player% 不存在!"
 
@@ -59,3 +63,8 @@ command:
 
   reload:
     success: "&a成功重载了 &bAuthX &a!"
+
+  set-uuid:
+    invalid-format: "&c错误的格式! 请使用 &e/authx setuuid <玩家用户名> [UUID]"
+    success: "&a成功将 %player% 的 UUID 设置为 %uuid% !"
+    invalid-uuid: "&c无效的 UUID 格式! 请检查 UUID 是否正确!"

@@ -216,12 +216,12 @@ public class UniAuthAPIClient {
                 .put("newPassword", newPassword).build());
         return response.getBoolean("success")? "" : response.getString("message");
     }
-    public static boolean resetPassword(String username, String email, String newPassword, String code) {
+    public static boolean resetPassword(String username, String oldPassword, String newPassword) {
         MapTree response = request("accountoperation", new ParamBuilder().put("operation", "changepassword")
-                .put("authentication", "email")
-                .put("username", username).put("email", email)
-                .put("newPassword", newPassword)
-                .put("code", code).build());
+                .put("authentication", "password")
+                .put("username", username)
+                .put("password", oldPassword)
+                .put("newPassword", newPassword).build());
         return response.getBoolean("success");
     }
     public static AuthResult verifyEmail(String username, String email, String password, String code){

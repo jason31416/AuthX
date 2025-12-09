@@ -119,7 +119,7 @@ public class LimboHandler implements LimboSessionHandler {
                 }
             }
             player.sendActionBar(Message.getMessage("auth.message-hint." + currentStage.name().toLowerCase(Locale.ROOT)).toComponent());
-        }).repeat(1L, TimeUnit.SECONDS);
+        }).repeat(1L, TimeUnit.SECONDS).schedule();
     }
     @Override
     public void onDisconnect() {

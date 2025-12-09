@@ -53,7 +53,11 @@ public class AccountCommandHandler implements SimpleCommand {
                     invocation.source().sendMessage(Message.getMessage("command.change-password.invalid-password-format").toComponent());
                     return;
                 }
-                AbstractAuthenticator.getInstance().changePassword(username, newPassword);
+                if(Config.getBoolean("command.change-password.need-old-password")) {
+                    AbstractAuthenticator.getInstance().changePasswordWithOld(username, invocation.arguments()[1], newPassword);
+                }else{
+                    AbstractAuthenticator.getInstance().changePassword(username, newPassword);
+                }
                 invocation.source().sendMessage(Message.getMessage("command.change-password.success").toComponent());
             }
             default -> {

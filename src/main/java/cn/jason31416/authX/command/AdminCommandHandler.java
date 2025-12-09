@@ -2,15 +2,18 @@ package cn.jason31416.authX.command;
 
 import cn.jason31416.authX.AuthXPlugin;
 import cn.jason31416.authX.authbackend.AbstractAuthenticator;
+import cn.jason31416.authX.handler.DatabaseHandler;
 import cn.jason31416.authX.message.Message;
 import cn.jason31416.authX.util.Config;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.command.SimpleCommand;
 import com.velocitypowered.api.proxy.Player;
+import com.velocitypowered.api.util.UuidUtils;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
 import java.util.List;
+import java.util.UUID;
 
 public class AdminCommandHandler implements SimpleCommand {
     public static final AdminCommandHandler INSTANCE = new AdminCommandHandler();
@@ -22,6 +25,10 @@ public class AdminCommandHandler implements SimpleCommand {
             subCommand = invocation.arguments()[0];
         }else{
             subCommand = "";
+        }
+        if((invocation.source() instanceof Player)&&!invocation.source().hasPermission("authx.admin")){
+            invocation.source().sendMessage(Message.getMessage("command.no-permission").toComponent());
+            return;
         }
         switch (subCommand){
             case "changepass" -> {
@@ -54,8 +61,28 @@ public class AdminCommandHandler implements SimpleCommand {
                 AuthXPlugin.instance.init();
                 invocation.source().sendMessage(Message.getMessage("command.reload.success").toComponent());
             }
+            case "setuuid" -> {
+                if(invocation.arguments().length<2){
+                    invocation.source().sendMessage(Message.getMessage("command.set-uuid.invalid-format").toComponent());
+                    return;
+                }
+                UUID uuid;
+                String username = invocation.arguments()[1];
+                if(invocation.arguments().length >= 3){
+                    try {
+                        uuid = UUID.fromString(invocation.arguments()[2]);
+                    }catch (Exception e){
+                        invocation.source().sendMessage(Message.getMessage("command.set-uuid.invalid-uuid").toComponent());
+                        return;
+                    }
+                }else{
+                    uuid = UuidUtils.generateOfflinePlayerUuid(username);
+                }
+                DatabaseHandler.setUUID(username, uuid);
+                invocation.source().sendMessage(Message.getMessage("command.set-uuid.success").add("player", username).add("uuid", uuid.toString()).toComponent());
+            }
             case "" -> {
-                invocation.source().sendMessage(new Message("&a&lRunning &b&lAuthX &a&l by Jason31416!").toComponent());
+                invocation.source().sendMessage(new Message("&aRunning &b&lAuthX v2 &aby Jason31416!").toComponent());
             }
             default -> {
                 invocation.source().sendMessage(Message.getMessage("command.default").toComponent());
@@ -65,16 +92,18 @@ public class AdminCommandHandler implements SimpleCommand {
     @Override
     public List<String> suggest(final @Nonnull Invocation invocation) {
         if(invocation.arguments().length<=1)
-            return List.of("changepass", "unregister", "reload");
+            return List.of("changepass", "unregister", "reload", "setuuid");
         else if(invocation.arguments().length == 2){
             return switch (invocation.arguments()[0]){
                 case "changepass" -> List.of(Message.getMessage("tab-complete.force-change-password.player").toString());
                 case "unregister" -> List.of(Message.getMessage("command.force-change-password.new").toString());
+                case "setuuid" -> List.of(Message.getMessage("tab-complete.set-uuid.player").toString());
                 default -> List.of();
             };
         }else if(invocation.arguments().length == 3){
             return switch (invocation.arguments()[0]){
                 case "changepass" -> List.of(Message.getMessage("command.force-change-password.new").toString());
+                case "setuuid" -> List.of(Message.getMessage("tab-complete.set-uuid.uuid").toString());
                 default -> List.of();
             };
         }
