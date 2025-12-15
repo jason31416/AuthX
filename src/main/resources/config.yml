@@ -1,3 +1,6 @@
+
+lang: en-us
+
 authentication:
   # The method used to determine if the player is using one of the listed auth servers.
   # If falsely recognized user as premium, the user will be disconnected but the next time they join, they will be able to login via password
@@ -29,9 +32,12 @@ authentication:
 
     method: SQLITE # SQLITE, UNIAUTH
 
+    # If you don't know what is this or don't have an uniauth provider, please don't try it and use SQLITE instead.
     uniauth:
       url: "http://localhost:8500/"
       api-key: ""
+
+      perform-local-backup: true
 
 log:
   pre-login: false

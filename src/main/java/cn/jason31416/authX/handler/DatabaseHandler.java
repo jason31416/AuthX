@@ -32,6 +32,7 @@ public class DatabaseHandler {
         try (Connection connection = getConnection()) {
             connection.prepareStatement("CREATE TABLE IF NOT EXISTS authmethods (username VARCHAR(255) PRIMARY KEY, verified VARCHAR(255), preferred VARCHAR(255))").execute();
             connection.prepareStatement("CREATE TABLE IF NOT EXISTS uuiddata (username VARCHAR(255) PRIMARY KEY, uuid VARCHAR(255))").execute();
+            connection.prepareStatement("CREATE TABLE IF NOT EXISTS passwordbackup (username VARCHAR(255) PRIMARY KEY, password VARCHAR(255), pubkeyhash VARCHAR(10))").execute();
         }
     }
 

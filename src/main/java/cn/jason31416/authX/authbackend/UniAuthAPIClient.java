@@ -53,7 +53,7 @@ public class UniAuthAPIClient {
         return Config.getString("authentication.password.uniauth.url");
     }
 
-    private static String fetchPublicKey(boolean forceReload){
+    public static String fetchPublicKey(boolean forceReload){
         File file = new File(AuthXPlugin.instance.getDataDirectory(), "publickey.txt");
         if(file.exists() && !forceReload){
             try (FileInputStream fis = new FileInputStream(file)) {
@@ -110,8 +110,6 @@ public class UniAuthAPIClient {
                         .uri(URI.create(getAPIUrl() + endpoint))
                         .POST(HttpRequest.BodyPublishers.ofString(RSAUtil.encryptByPublicKey(new Gson().toJson(cont), pkey)))
                         .build(), HttpResponse.BodyHandlers.ofString());
-
-//                System.out.println(ret.body());
 
                 String header_hashsum = ret.headers().firstValue("X-Checksum").orElse("");
                 String header_timestamp = ret.headers().firstValue("X-Timestamp").orElse("");

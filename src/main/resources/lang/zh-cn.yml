@@ -68,3 +68,7 @@ command:
     invalid-format: "&c错误的格式! 请使用 &e/authx setuuid <玩家用户名> [UUID]"
     success: "&a成功将 %player% 的 UUID 设置为 %uuid% !"
     invalid-uuid: "&c无效的 UUID 格式! 请检查 UUID 是否正确!"
+
+  recover:
+    failed: "&c尝试恢复密码时遇到错误：%reason%"
+    success: "&a成功从备份恢复了 %count% 名玩家的密码!"

@@ -1,9 +1,11 @@
 package cn.jason31416.authX.message;
 
 import cn.jason31416.authX.AuthXPlugin;
+import cn.jason31416.authX.util.Config;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.*;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -12,15 +14,25 @@ public class MessageLoader {
     public Map<String, Object> messageConfig;
 
     public static void initialize(){
-        File lang = new File(AuthXPlugin.getInstance().getDataDirectory(), "lang.yml");
+        File langfolder = new File(AuthXPlugin.getInstance().getDataDirectory(), "lang");
+        if(!langfolder.exists()) {
+            langfolder.mkdir();
+            List<String> supported = List.of("en-us", "zh-cn");
+            supported.forEach(lang -> {
+                File langfile = new File(AuthXPlugin.getInstance().getDataDirectory(), "lang/"+ lang+".yml");
+                try (InputStream inputStream = AuthXPlugin.class.getClassLoader().getResourceAsStream("lang/"+ lang+".yml"); OutputStream outputStream = new FileOutputStream(langfile)) {
+                    outputStream.write(Objects.requireNonNull(inputStream).readAllBytes());
+                }catch (Exception e){
+                    throw new RuntimeException("Cannot save language file: "+e);
+                }
+            });
+        }
+        File lang = new File(AuthXPlugin.getInstance().getDataDirectory(), "lang/"+ Config.getString("lang")+".yml");
 
         if(!lang.exists()){
-            try (InputStream inputStream = AuthXPlugin.class.getClassLoader().getResourceAsStream("lang.yml"); OutputStream outputStream = new FileOutputStream(lang)) {
-                outputStream.write(Objects.requireNonNull(inputStream).readAllBytes());
-            }catch (Exception e){
-                throw new RuntimeException("Cannot save language file: "+e);
-            }
+            throw new RuntimeException("Language file doesn't exist!");
         }
+
         new MessageLoader(lang);
     }
 
@@ -28,7 +40,7 @@ public class MessageLoader {
         try (FileInputStream is = new FileInputStream(filePath)){
             this.messageConfig = new Yaml().load(is);
         }catch (Exception ignored){
-            throw new RuntimeException("Failed to load message config file!");
+            throw new RuntimeException("Failed to load message config file!" + ignored.getMessage());
         }
         instance = this;
     }

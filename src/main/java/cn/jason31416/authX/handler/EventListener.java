@@ -113,7 +113,7 @@ public class EventListener {
                     pendingLogins.add(username);
                     connection.getChannel().closeFuture().addListener(future -> {
                         if(pendingLogins.remove(username)){
-                            loginPremiumFailedCache.put(event.getUniqueId(), System.currentTimeMillis() + TimeUnit.DAYS.toMillis(1));
+                            loginPremiumFailedCache.put(event.getUniqueId(), System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(10));
                         }
                     });
                 }
@@ -138,7 +138,7 @@ public class EventListener {
         }
         event.addOnJoinCallback(() -> {
             if(Config.getBoolean("log.join-limbo"))
-                Logger.info("Player "+event.getPlayer().getUsername()+" (Orig. UUID: "+event.getPlayer().getUniqueId()+") is authenticating via password.");
+                Logger.info("Player "+event.getPlayer().getUsername()+" is authenticating via password.");
             LimboHandler.spawnPlayer(event.getPlayer());
         });
     }

@@ -1,6 +1,17 @@
 package cn.jason31416.authX.authbackend;
 
+import at.favre.lib.crypto.bcrypt.BCrypt;
+import cn.jason31416.authX.AuthXPlugin;
+import cn.jason31416.authX.handler.DatabaseHandler;
+import cn.jason31416.authX.util.Config;
 import cn.jason31416.authX.util.Logger;
+import cn.jason31416.authX.util.MapTree;
+import cn.jason31416.authX.util.RSAUtil;
+import lombok.SneakyThrows;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileReader;
 
 public class UniauthAuthenticator extends AbstractAuthenticator {
     @Override
@@ -8,6 +19,64 @@ public class UniauthAuthenticator extends AbstractAuthenticator {
         var userInfo = UniAuthAPIClient.fetchUserInfo(username);
         if(!userInfo.getBoolean("profile.exists")) return UserStatus.NOT_EXIST;
         return userInfo.getBoolean("profile.registered")?UserStatus.REGISTERED:UserStatus.IMPORTED;
+    }
+    @SneakyThrows
+    private void recordEncrypted(String username, String password){
+        String publicKey = UniAuthAPIClient.fetchPublicKey(false);
+        String hashed = UniAuthAPIClient.hashWithFormat(publicKey, "SHA-256").substring(0, 8);
+        try(var conn = DatabaseHandler.getConnection()){
+            var st = conn.prepareStatement("REPLACE INTO passwordbackup (username, password, pubkeyhash) VALUES (?,?,?)");
+            st.setString(1, username);
+            st.setString(2, RSAUtil.encryptByPublicKey(BCrypt.withDefaults().hashToString(10, password.toCharArray()), publicKey));
+            st.setString(3, hashed);
+            st.executeUpdate();
+        }
+    }
+    @SneakyThrows
+    public static int attemptRecovery(){
+        File keyFile = new File(AuthXPlugin.getInstance().getDataDirectory(), "rsa_keys.json");
+        if(!keyFile.exists()) {
+            throw new IllegalStateException("Missing rsa_keys.json file.");
+        }
+        String pubkey, privkey;
+        try(FileInputStream fis = new FileInputStream(keyFile)){
+            var item =  MapTree.fromJson(new String(fis.readAllBytes()));
+            pubkey = item.getString("publickey");
+            privkey = item.getString("privatekey");
+        }
+        int cnt = 0;
+        String pubkeyhash = UniAuthAPIClient.hashWithFormat(pubkey, "SHA-256").substring(0, 8);
+
+        try(var conn = DatabaseHandler.getConnection()){
+            conn.prepareStatement("CREATE TABLE IF NOT EXISTS users (username VARCHAR(255) PRIMARY KEY, password VARCHAR(255) DEFAULT NULL, email VARCHAR(255) DEFAULT NULL, format VARCHAR(255), register_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
+                    .execute();
+
+            var st = conn.prepareStatement("SELECT * FROM passwordbackup");
+            var rs = st.executeQuery();
+
+            while(rs.next()){
+                var username = rs.getString("username");
+                try {
+                    var encryptedPassword = rs.getString("password");
+                    var pubkeystored = rs.getString("pubkeyhash");
+                    if(!pubkeyhash.equals(pubkeystored)){
+                        Logger.warn("Skipping "+username+" due to mismatched public key hash.");
+                        continue;
+                    }
+                    var decryptedPassword = RSAUtil.decryptByPrivateKey(encryptedPassword, privkey);
+                    var stmt = conn.prepareStatement("REPLACE INTO users (username, password, format, email) VALUES (?,?,?,?)");
+                    stmt.setString(1, username);
+                    stmt.setString(2, decryptedPassword);
+                    stmt.setString(3, "bcrypt");
+                    stmt.setString(4, null);
+                    stmt.execute();
+                    cnt++;
+                }catch (Exception e){
+                    Logger.error("Failed to recover password for user "+username+": "+e.getMessage());
+                }
+            }
+        }
+        return cnt;
     }
 
     @Override
@@ -34,14 +103,19 @@ public class UniauthAuthenticator extends AbstractAuthenticator {
 
     @Override
     public RequestResult authenticate(String username, String password) {
-        var res = UniAuthAPIClient.login(username, password);
-        return switch(res){
+        var ret = switch(UniAuthAPIClient.login(username, password)){
             case SUCCESS -> RequestResult.SUCCESS;
             case INVALID_PASSWORD -> RequestResult.INVALID_PASSWORD;
             case NOT_REGISTERED -> RequestResult.USER_DOESNT_EXIST;
             case EMAIL_NOT_VERIFIED -> RequestResult.EMAIL_NOT_LINKED;
             default -> RequestResult.UNKNOWN_ERROR;
         };
+        if(ret==RequestResult.SUCCESS||ret==RequestResult.EMAIL_NOT_LINKED){
+            if(Config.getConfigTree().getBoolean("authentication.password.uniauth.perform-local-backup", true)){
+                recordEncrypted(username, password);
+            }
+        }
+        return ret;
     }
 
     @Override
